@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Doggy Desserts - Monthly Competition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .dog-card {
+      transition: all .3s ease;
+      border: 2px solid #f1f1f1;
+      overflow: hidden;
+      border-radius: 1rem;
+      background: #fff;
+    }
+    .dog-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .vote-btn {
+      transition: all .2s ease;
+      cursor: pointer;
+    }
+    .vote-btn:hover:not(.voted) {
+      transform: scale(1.1);
+    }
+    .voted {
+      color: #ab5896;
+      animation: pop .3s ease-in-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .tooltip.show {
+      opacity: 1;
+    }
+    .lazy-img {
+      filter: blur(10px);
+      transition: filter 0.3s ease;
+    }
+    .lazy-img.loaded {
+      filter: blur(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-[#54b8b2]">Doggy Desserts</h1>
+      <h2 class="text-2xl font-semibold text-[#ab5896] mb-4">Monthly Dog Photo Competition</h2>
+      <p class="text-lg text-gray-700">Vote for your favourite doggy! Each person can vote once per dog.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="dog-gallery">
+      <!-- Cards will load here -->
+    </div>
+  </div>
+
+  <script>
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdPpLhFySI0wKspB91rV4qFDM0OcE5nRuFUNhtip1SaJYopsOacuNIsR1WhAR4x6IYCw3fJWaFonjX/pub?output=csv';
+    const submitUrl = 'https://script.google.com/macros/s/AKfycbxqGfWqk8edwCkef-qy7JAyGQYhVz6ovNB762CKFTqwTp5OplLQUk_G7yRQk6sJ4Xaw/exec';
+    const KEY = 'v4_vote_';
+
+    async function fetchDogData() {
+      const res = await fetch(sheetUrl);
+      const text = await res.text();
+      return text.trim().split('\n').slice(1).map(row => {
+        const [id, name, votes, date, image] = row.split(',');
+        return { id, name: name.trim(), votes: +votes, date, image: image.trim() };
+      });
+    }
+
+    function showTooltip(el, msg) {
+      const tip = document.createElement('div');
+      tip.className = 'tooltip';
+      tip.innerText = msg;
+      const r = el.getBoundingClientRect();
+      tip.style.top = (r.top - 30) + 'px';
+      tip.style.left = (r.left + r.width / 2 - 80) + 'px';
+      document.body.appendChild(tip);
+      requestAnimationFrame(() => tip.classList.add('show'));
+      setTimeout(() => {
+        tip.classList.remove('show');
+        setTimeout(() => tip.remove(), 300);
+      }, 2000);
+    }
+
+    async function renderDogs() {
+      const dogs = await fetchDogData();
+      const gallery = document.getElementById('dog-gallery');
+      gallery.innerHTML = '';
+
+      dogs.forEach(dog => {
+        const votedKey = KEY + dog.id;
+        const alreadyVoted = localStorage.getItem(votedKey);
+
+        const card = document.createElement('div');
+        card.className = 'dog-card';
+        card.innerHTML = `
+          <div style="aspect-ratio: 1 / 1; overflow: hidden;">
+            <img class="lazy-img w-full h-full object-contain" data-src="${dog.image}" alt="${dog.name}">
+          </div>
+          <div class="p-4">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xl font-bold text-gray-800">${dog.name}</h3>
+              <button class="share-btn text-sm bg-gray-200 rounded px-2 py-1">Share</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="vote-btn ${alreadyVoted ? 'voted' : ''}">💗</button>
+              <span class="vote-count text-lg font-semibold">${dog.votes}</span>
+              <span class="text-sm text-gray-500">votes</span>
+            </div>
+          </div>
+        `;
+
+        gallery.appendChild(card);
+
+        const img = card.querySelector('img');
+        img.src = img.getAttribute('data-src');
+        img.onload = () => img.classList.add('loaded');
+
+        const voteBtn = card.querySelector('.vote-btn');
+        const voteCount = card.querySelector('.vote-count');
+
+        voteBtn.onclick = async () => {
+          if (localStorage.getItem(votedKey)) return showTooltip(voteBtn, 'You already voted for this dog!');
+
+          voteBtn.classList.add('voted');
+          localStorage.setItem(votedKey, '1');
+          voteCount.textContent = parseInt(voteCount.textContent) + 1;
+
+          try {
+            const res = await fetch(submitUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: dog.id })
+            });
+            const txt = await res.text();
+            console.log('Vote response:', txt);
+          } catch (err) {
+            console.error('Vote failed:', err);
+            showTooltip(voteBtn, 'Something went wrong!');
+          }
+
+          showTooltip(voteBtn, 'Thanks for your vote!');
+        };
+
+        const shareBtn = card.querySelector('.share-btn');
+        shareBtn.onclick = () => {
+          const url = `${location.origin}${location.pathname}?dog=${dog.id}`;
+          navigator.clipboard.writeText(url);
+          showTooltip(shareBtn, 'Link copied!');
+        };
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', renderDogs);
+  </script>
+</body>
+</html>
