@@ -3,120 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dog Photo Voting</title>
+  <title>Dog Voting Competition</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f9f9f9;
+      font-family: Arial, sans-serif;
       margin: 0;
       padding: 2rem;
+      background-color: #00b3b3;
     }
     h1 {
       text-align: center;
+      margin-bottom: 2rem;
+      color: white;
     }
-    .grid {
+    .dog-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 2rem;
-      margin-top: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .card {
+    .dog-card {
       background: white;
-      padding: 1rem;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 1rem;
       text-align: center;
+      transition: transform 0.2s ease;
     }
-    img {
-      max-width: 100%;
+    .dog-card:hover {
+      transform: scale(1.03);
+    }
+    .dog-card img {
+      width: 100%;
+      height: auto;
       border-radius: 8px;
-    }
-    .name {
-      font-weight: bold;
-      margin: 0.5rem 0;
-    }
-    .votes {
       margin-bottom: 0.5rem;
     }
-    button {
-      background: #25b3ad;
-      color: white;
+    .dog-card button {
+      margin-top: 0.5rem;
       padding: 0.5rem 1rem;
+      background: #25b3ad;
       border: none;
+      colour: white;
       border-radius: 6px;
       cursor: pointer;
-      font-weight: bold;
     }
-    button:hover {
-      background: #1a938f;
+    .dog-card button:hover {
+      background: #1a908d;
     }
   </style>
 </head>
 <body>
   <h1>Vote for Your Favourite Dog!</h1>
-  <div id="dogGrid" class="grid"></div>
+  <div class="dog-grid" id="dogGrid"></div>
 
   <script>
-    const airtableToken = 'patGu2KJyHU7wFquL.f68bdc54f1c7e2a3425dae954e8ae54570a62d291d61079eb0a6af2cd0769c29';
-    const baseId = 'appnlM6IYJ4unRQQQ';
-    const tableName = 'Imported table';
+    fetch('/api.js')
+      .then(res => res.json())
+      .then(data => {
+        const grid = document.getElementById('dogGrid');
 
-    const headers = {
-      Authorization: 'Bearer ' + airtableToken,
-      'Content-Type': 'application/json'
-    };
-
-    const fetchDogs = async () => {
-      const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?sort[0][field]=ID`, { headers });
-      const data = await res.json();
-      return data.records;
-    };
-
-    const voteForDog = async (recordId, currentVotes, button) => {
-      button.disabled = true;
-      button.textContent = 'Voting...';
-      await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          fields: { Votes: currentVotes + 1 }
-        })
+        data.records.forEach(record => {
+          const dog = record.fields;
+          const card = document.createElement('div');
+          card.className = 'dog-card';
+          card.innerHTML = `
+            <img src="${dog.Image?.[0]?.url || ''}" alt="${dog.Name}" />
+            <h3>${dog.Name}</h3>
+            <button onclick="vote('${record.id}')">Vote</button>
+          `;
+          grid.appendChild(card);
+        });
+      })
+      .catch(err => {
+        console.error('Error loading dogs:', err);
       });
-      button.textContent = 'Voted!';
-    };
 
-    const renderDogs = async () => {
-      const grid = document.getElementById('dogGrid');
-      const dogs = await fetchDogs();
-
-      dogs.forEach(dog => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const img = document.createElement('img');
-        img.src = dog.fields.Image?.[0]?.url || 'https://via.placeholder.com/200x200?text=No+Image';
-        card.appendChild(img);
-
-        const name = document.createElement('div');
-        name.className = 'name';
-        name.textContent = dog.fields.Name || 'Unnamed';
-        card.appendChild(name);
-
-        const votes = document.createElement('div');
-        votes.className = 'votes';
-        votes.textContent = `Votes: ${dog.fields.Votes || 0}`;
-        card.appendChild(votes);
-
-        const button = document.createElement('button');
-        button.textContent = 'Vote';
-        button.onclick = () => voteForDog(dog.id, dog.fields.Votes || 0, button);
-        card.appendChild(button);
-
-        grid.appendChild(card);
+    function vote(recordId) {
+      fetch('/api.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordId })
+      })
+      .then(res => res.json())
+      .then(response => {
+        alert("Thanks for voting!");
+      })
+      .catch(err => {
+        alert("Oops, something went wrong.");
+        console.error(err);
       });
-    };
-
-    renderDogs();
+    }
   </script>
 </body>
 </html>
