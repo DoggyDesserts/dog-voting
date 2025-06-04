@@ -1,4 +1,4 @@
-const AIRTABLE_TOKEN = 'YOUR_TOKEN_HERE';
+const AIRTABLE_TOKEN = 'patFDGhv7qdhoDrpj.6f240fc246b93b89be3618665862f0638f68087e2576521bdfdb8acdba68dac6';
 const AIRTABLE_BASE_ID = 'appnIM6IYJ4unRQQQ';
 const AIRTABLE_TABLE_NAME = 'Imported table';
 
