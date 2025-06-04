@@ -79,7 +79,7 @@
   <script>
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdPpLhFySI0wKspB91rV4qFDM0OcE5nRuFUNhtip1SaJYopsOacuNIsR1WhAR4x6IYCw3fJWaFonjX/pub?output=csv';
     const submitUrl = 'https://script.google.com/macros/s/AKfycbxqGfWqk8edwCkef-qy7JAyGQYhVz6ovNB762CKFTqwTp5OplLQUk_G7yRQk6sJ4Xaw/exec';
-    const KEY = 'v4_vote_';
+    const KEY = 'v3_vote_';
 
     async function fetchDogData() {
       const res = await fetch(sheetUrl);
@@ -156,7 +156,7 @@
               body: JSON.stringify({ id: dog.id })
             });
             const txt = await res.text();
-            console.log('Vote response:', txt);
+            console.log('Vote success:', txt);
           } catch (err) {
             console.error('Vote failed:', err);
             showTooltip(voteBtn, 'Something went wrong!');
