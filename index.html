@@ -1,100 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dog Voting Competition</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 2rem;
-      background-color: #00b3b3;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-      color: white;
-    }
-    .dog-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .dog-card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      padding: 1rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-    }
-    .dog-card:hover {
-      transform: scale(1.03);
-    }
-    .dog-card img {
-      width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
-    }
-    .dog-card button {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: #25b3ad;
-      border: none;
-      colour: white;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .dog-card button:hover {
-      background: #1a908d;
-    }
-  </style>
-</head>
-<body>
-  <h1>Vote for Your Favourite Dog!</h1>
-  <div class="dog-grid" id="dogGrid"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Doggy Desserts - Monthly Competition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+      body {
+        font-family: 'Poppins', sans-serif;
+        background: #f9f9f9;
+        color: #333;
+      }
+      .dog-card {
+        transition: all .3s ease;
+        border: 2px solid #f1f1f1;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: #fff;
+      }
+      .dog-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      }
+      .vote-btn {
+        transition: all .2s ease;
+        cursor: pointer;
+      }
+      .vote-btn:hover:not(.voted) {
+        transform: scale(1.1);
+      }
+      .voted {
+        color: #ab5896;
+        animation: pop .3s ease-in-out;
+      }
+      @keyframes pop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mx-auto px-4 py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-[#54b8b2]">Doggy Desserts</h1>
+        <h2 class="text-2xl font-semibold text-[#ab5896] mb-4">Monthly Dog Photo Competition</h2>
+        <p class="text-lg text-gray-700">Vote for your favourite doggy! Each person can vote once per dog.</p>
+      </div>
 
-  <script>
-    fetch('/api.js')
-      .then(res => res.json())
-      .then(data => {
-        const grid = document.getElementById('dogGrid');
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="dog-gallery">
+        <!-- Cards will load here -->
+      </div>
+    </div>
 
-        data.records.forEach(record => {
+    <script type="module">
+      import { fetchVotes, submitVote } from './api.js';
+
+      const gallery = document.getElementById('dog-gallery');
+      const KEY = 'v4_vote_';
+
+      const renderDogs = async () => {
+        const records = await fetchVotes();
+        gallery.innerHTML = '';
+
+        records.forEach(record => {
           const dog = record.fields;
+          const id = record.id;
+          const votedKey = KEY + id;
+          const alreadyVoted = localStorage.getItem(votedKey);
+
           const card = document.createElement('div');
           card.className = 'dog-card';
           card.innerHTML = `
-            <img src="${dog.Image?.[0]?.url || ''}" alt="${dog.Name}" />
-            <h3>${dog.Name}</h3>
-            <button onclick="vote('${record.id}')">Vote</button>
+            <div style="aspect-ratio: 1 / 1; overflow: hidden;">
+              <img class="w-full h-full object-contain" src="${dog.Image}" alt="${dog.Name}">
+            </div>
+            <div class="p-4">
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xl font-bold text-gray-800">${dog.Name}</h3>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="vote-btn ${alreadyVoted ? 'voted' : ''}">💗</button>
+                <span class="vote-count text-lg font-semibold">${dog.Votes || 0}</span>
+                <span class="text-sm text-gray-500">votes</span>
+              </div>
+            </div>
           `;
-          grid.appendChild(card);
-        });
-      })
-      .catch(err => {
-        console.error('Error loading dogs:', err);
-      });
 
-    function vote(recordId) {
-      fetch('/api.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordId })
-      })
-      .then(res => res.json())
-      .then(response => {
-        alert("Thanks for voting!");
-      })
-      .catch(err => {
-        alert("Oops, something went wrong.");
-        console.error(err);
-      });
-    }
-  </script>
-</body>
+          const voteBtn = card.querySelector('.vote-btn');
+          const voteCount = card.querySelector('.vote-count');
+
+          voteBtn.onclick = async () => {
+            if (localStorage.getItem(votedKey)) return alert('You already voted for this dog!');
+
+            voteBtn.classList.add('voted');
+            localStorage.setItem(votedKey, '1');
+            voteCount.textContent = parseInt(voteCount.textContent) + 1;
+
+            try {
+              await submitVote(id, parseInt(voteCount.textContent) - 1);
+            } catch (err) {
+              console.error(err);
+              alert('Something went wrong saving your vote.');
+            }
+          };
+
+          gallery.appendChild(card);
+        });
+      };
+
+      renderDogs();
+    </script>
+  </body>
 </html>
