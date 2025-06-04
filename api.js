@@ -1,11 +1,11 @@
-const AIRTABLE_TOKEN = 'patFDGhv7qdhoDrpj.6f240fc246b93b89be3618665862f0638f68087e2576521bdfdb8acdba68dac6';
-const AIRTABLE_BASE_ID = 'appnIM6IYJ4unRQQQ';
-const AIRTABLE_TABLE_NAME = 'Imported table';
+const baseId = "appnIM6IYJ4unRQQQ"; // Your Airtable base ID
+const tableName = "Imported table"; // Exact table name
+const token = "patFDGhv7qdhoDrpj.6f240fc246b93b89be3618665862f0638f68087e2576521bdfdb8acdba68dac6"; // TEMPORARY exposed token
 
 const fetchVotes = async () => {
-  const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?sort[0][field]=Votes&sort[0][direction]=desc`, {
+  const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?sort[0][field]=Votes&sort[0][direction]=desc`, {
     headers: {
-      Authorization: `Bearer ${AIRTABLE_TOKEN}`
+      Authorization: `Bearer ${token}`
     }
   });
 
@@ -14,10 +14,10 @@ const fetchVotes = async () => {
 };
 
 const submitVote = async (recordId, currentVotes) => {
-  const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}/${recordId}`, {
+  const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}/${recordId}`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
